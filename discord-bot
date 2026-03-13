@@ -1,1 +1,172 @@
+import discord
+from discord.ext import commands
+from discord import app_commands
+from dotenv import load_dotenv
+import os
+import random
 
+# carregar .env
+load_dotenv()
+TOKEN = os.getenv("TOKEN")
+
+if not TOKEN:
+    raise ValueError("TOKEN não encontrado no .env")
+
+# intents
+intents = discord.Intents.default()
+intents.message_content = True
+intents.guilds = True
+
+bot = commands.Bot(command_prefix="!", intents=intents)
+
+# -------------------------
+# EVENTOS
+# -------------------------
+
+@bot.event
+async def on_ready():
+    print(f"🤖 Bot conectado como {bot.user}")
+    try:
+        synced = await bot.tree.sync()
+        print(f"🔧 {len(synced)} slash commands sincronizados")
+    except Exception as e:
+        print(f"Erro ao sincronizar: {e}")
+
+# -------------------------
+# SLASH COMMANDS
+# -------------------------
+
+@bot.tree.command(name="ping", description="ver latência do bot")
+async def ping(interaction: discord.Interaction):
+    latency = round(bot.latency * 1000)
+    await interaction.response.send_message(f"🏓 Pong! {latency}ms")
+
+
+@bot.tree.command(name="oi", description="cumprimentar o bot")
+async def oi(interaction: discord.Interaction):
+    await interaction.response.send_message(f"👋 Olá {interaction.user.mention}!")
+
+
+@bot.tree.command(name="sortear", description="sortear número")
+async def sortear(interaction: discord.Interaction, max: int):
+
+    if max <= 0:
+        await interaction.response.send_message("⚠️ O número precisa ser maior que 0.")
+        return
+
+    numero = random.randint(1, max)
+
+    await interaction.response.send_message(
+        f"🎲 Número sorteado: **{numero}**"
+    )
+
+
+@bot.tree.command(name="avatar", description="ver avatar de alguém")
+async def avatar(interaction: discord.Interaction, user: discord.User):
+
+    embed = discord.Embed(title=f"Avatar de {user.name}")
+    embed.set_image(url=user.display_avatar.url)
+
+    await interaction.response.send_message(embed=embed)
+
+
+@bot.tree.command(name="limpar", description="apagar mensagens")
+@app_commands.checks.has_permissions(manage_messages=True)
+async def limpar(interaction: discord.Interaction, quantidade: int):
+
+    await interaction.response.defer(ephemeral=True)
+
+    deleted = await interaction.channel.purge(limit=quantidade)
+
+    await interaction.followup.send(
+        f"🧹 {len(deleted)} mensagens apagadas!"
+    )
+
+
+@bot.tree.command(name="botinfo", description="informações do bot")
+async def botinfo(interaction: discord.Interaction):
+
+    embed = discord.Embed(
+        title="🤖 Informações do Bot",
+        color=discord.Color.blue()
+    )
+
+    embed.add_field(name="Servidores", value=len(bot.guilds))
+    embed.add_field(name="Ping", value=f"{round(bot.latency * 1000)}ms")
+    embed.set_footer(text=f"Pedido por {interaction.user}")
+
+    await interaction.response.send_message(embed=embed)
+
+
+# -------------------------
+# PREFIX COMMANDS
+# -------------------------
+
+@bot.command()
+async def ping(ctx):
+    await ctx.reply("🏓 Pong!")
+
+
+@bot.command()
+async def coin(ctx):
+    moeda = random.choice(["cara", "coroa"])
+    await ctx.reply(f"🪙 Deu **{moeda}**!")
+
+
+@bot.command()
+async def mede(ctx):
+    await ctx.reply("irmão eu preciso de dinheiro mais do que voce")
+
+
+@bot.command()
+async def chad(ctx):
+    await ctx.reply("ola senhores 🗿🍷")
+
+
+@bot.command()
+async def rapai(ctx):
+    await ctx.reply("se você ta sem dinheiro imagina eu filho")
+
+
+@bot.command()
+async def prefeito(ctx):
+    await ctx.reply("cadê o prefeito para tampar os buracos da rua")
+
+
+@bot.command()
+async def gg(ctx):
+    await ctx.reply("gg ez saiu do tutorial")
+
+
+@bot.command()
+async def pipoca(ctx):
+    await ctx.reply("ta no fogo parceiro espera ai")
+
+
+@bot.command()
+async def dado(ctx):
+
+    numero = random.randint(1,6)
+
+    await ctx.reply(f"🎲 Caiu **{numero}**!")
+
+
+@bot.command()
+async def talento(ctx):
+    await ctx.reply("sem talento")
+
+# -------------------------
+# ERRO DE PERMISSÃO
+# -------------------------
+
+@limpar.error
+async def limpar_error(interaction: discord.Interaction, error):
+
+    if isinstance(error, app_commands.errors.MissingPermissions):
+        await interaction.response.send_message(
+            "❌ Você não tem permissão para apagar mensagens.",
+            ephemeral=True
+        )
+
+
+bot.run(TOKEN)
